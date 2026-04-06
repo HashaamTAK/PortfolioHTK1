@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Hashaam Tanveer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/framer-motion/10.16.4/framer-motion.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#02020a;color:#e2e2f0;font-family:'Inter',sans-serif;overflow-x:hidden;cursor:none}
+a{text-decoration:none;color:inherit}
+input,textarea,button{font-family:'Inter',sans-serif}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1a1a2e;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const FM = window.FramerMotion;
+const { motion, AnimatePresence, useMotionValue, useSpring, useTransform, useInView } = FM;
+
+const C = {
+  bg:"#02020a", s1:"#07071a", s2:"#0d0d24",
+  border:"rgba(255,255,255,0.06)", borderB:"rgba(255,255,255,0.12)",
+  text:"#e2e2f0", muted:"#6b6b8a", dim:"#2a2a40",
+  violet:"#8b5cf6", cyan:"#06b6d4", rose:"#f43f5e",
+  amber:"#f59e0b", emerald:"#10b981", pink:"#ec4899",
+};
+
+/* GRAD TEXT */
+const GradText = ({ children, from=C.violet, to=C.cyan }) => (
+  <span style={{background:`linear-gradient(135deg,${from},${to})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>{children}</span>
+);
+
+/* AURORA */
+function Aurora() {
+  const blobs = [
+    {col:"#6d28d9",x:"-5%",y:"-15%",size:900,delay:0},
+    {col:"#0e7490",x:"55%",y:"15%",size:700,delay:-7},
+    {col:"#9d174d",x:"15%",y:"55%",size:650,delay:-14},
+    {col:"#065f46",x:"70%",y:"65%",size:550,delay:-11},
+  ];
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:0,overflow:"hidden",pointerEvents:"none"}}>
+      {blobs.map((b,i)=>(
+        <motion.div key={i} style={{position:"absolute",width:b.size,height:b.size,borderRadius:"50%",background:b.col,left:b.x,top:b.y,filter:"blur(140px)",opacity:.12}}
+          animate={{x:[0,50,-30,0],y:[0,-40,25,0],scale:[1,1.12,.94,1]}}
+          transition={{duration:22,repeat:Infinity,ease:"easeInOut",delay:b.delay}}/>
+      ))}
+      <div style={{position:"absolute",inset:0,
+        backgroundImage:"linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px)",
+        backgroundSize:"80px 80px",
+        maskImage:"radial-gradient(ellipse 90% 60% at 50% 0%,black 20%,transparent 100%)",
+        WebkitMaskImage:"radial-gradient(ellipse 90% 60% at 50% 0%,black 20%,transparent 100%)"
+      }}/>
+    </div>
+  );
+}
+
+/* CURSOR GLOW */
+function CursorGlow() {
+  const mx = useMotionValue(0), my = useMotionValue(0);
+  const sx = useSpring(mx,{stiffness:70,damping:18}), sy = useSpring(my,{stiffness:70,damping:18});
+  useEffect(()=>{
+    const h=e=>{mx.set(e.clientX);my.set(e.clientY)};
+    window.addEventListener("mousemove",h);
+    return ()=>window.removeEventListener("mousemove",h);
+  },[]);
+  return <>
+    <motion.div style={{position:"fixed",top:0,left:0,pointerEvents:"none",zIndex:9999,width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(139,92,246,.07) 0%,transparent 70%)",translateX:useTransform(sx,v=>v-300),translateY:useTransform(sy,v=>v-300)}}/>
+    <motion.div style={{position:"fixed",top:0,left:0,pointerEvents:"none",zIndex:10000,width:8,height:8,borderRadius:"50%",background:C.violet,boxShadow:`0 0 14px ${C.violet}`,translateX:useTransform(mx,v=>v-4),translateY:useTransform(my,v=>v-4)}}/>
+  </>;
+}
+
+/* SHOOTING STARS */
+function Star({delay}) {
+  return <motion.div style={{position:"absolute",top:`${10+Math.random()*40}%`,left:"-20px",width:2,height:2,borderRadius:"50%",background:"#fff",boxShadow:"0 0 6px rgba(255,255,255,.6)"}}
+    initial={{x:-20,y:0,opacity:0}}
+    animate={{x:"120vw",y:"35vh",opacity:[0,1,1,0]}}
+    transition={{duration:2.8,delay,repeat:Infinity,repeatDelay:Math.random()*10+6,ease:"easeIn"}}/>;
+}
+
+/* REVEAL */
+function Reveal({children,delay=0,style={}}) {
+  const ref = useRef(null);
+  const inView = useInView(ref,{once:true,margin:"-50px"});
+  return (
+    <motion.div ref={ref} initial={{opacity:0,y:28}} animate={inView?{opacity:1,y:0}:{opacity:0,y:28}}
+      transition={{duration:.75,ease:[.16,1,.3,1],delay}} style={style}>
+      {children}
+    </motion.div>
+  );
+}
+
+/* TILT CARD */
+function Card({children,style={},glow=C.violet}) {
+  const ref=useRef(null);
+  const rx=useMotionValue(0),ry=useMotionValue(0);
+  const srx=useSpring(rx,{stiffness:180,damping:22}),sry=useSpring(ry,{stiffness:180,damping:22});
+  const handleMove=e=>{
+    const r=ref.current.getBoundingClientRect();
+    rx.set(((e.clientY-r.top)/r.height-.5)*12);
+    ry.set(-((e.clientX-r.left)/r.width-.5)*12);
+  };
+  return (
+    <motion.div ref={ref} onMouseMove={handleMove} onMouseLeave={()=>{rx.set(0);ry.set(0)}}
+      style={{background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",borderRadius:16,backdropFilter:"blur(16px)",rotateX:srx,rotateY:sry,transformStyle:"preserve-3d",position:"relative",overflow:"hidden",...style}}
+      whileHover={{borderColor:`${glow}44`,boxShadow:`0 24px 80px rgba(0,0,0,.6),0 0 0 1px ${glow}22`}}
+      transition={{duration:.3}}>
+      <div style={{position:"absolute",inset:0,borderRadius:16,background:"linear-gradient(135deg,rgba(255,255,255,.05) 0%,transparent 60%)",pointerEvents:"none"}}/>
+      {children}
+    </motion.div>
+  );
+}
+
+/* MAGNETIC BUTTON */
+function Btn({children,onClick,variant="primary",style={}}) {
+  const ref=useRef(null);
+  const x=useMotionValue(0),y=useMotionValue(0);
+  const sx=useSpring(x,{stiffness:250,damping:18}),sy=useSpring(y,{stiffness:250,damping:18});
+  const mv=useCallback(e=>{
+    const r=ref.current.getBoundingClientRect();
+    x.set((e.clientX-r.left-r.width/2)*.4);
+    y.set((e.clientY-r.top-r.height/2)*.4);
+  },[]);
+  const base={position:"relative",border:"none",cursor:"none",padding:"13px 30px",borderRadius:10,fontWeight:600,fontSize:14,display:"inline-flex",alignItems:"center",gap:8,...style};
+  const vs=variant==="primary"
+    ?{background:"linear-gradient(135deg,#7c3aed,#0891b2)",color:"#fff",boxShadow:"0 0 40px rgba(124,58,237,.3),inset 0 1px 0 rgba(255,255,255,.12)"}
+    :{background:"rgba(255,255,255,.05)",color:C.text,border:"1px solid rgba(255,255,255,.12)"};
+  return (
+    <motion.button ref={ref} style={{...base,...vs,translateX:sx,translateY:sy}}
+      onMouseMove={mv} onMouseLeave={()=>{x.set(0);y.set(0)}} whileTap={{scale:.96}} onClick={onClick}>
+      {children}
+    </motion.button>
+  );
+}
+
+/* COUNTER */
+function Counter({target,suffix=""}) {
+  const [v,setV]=useState(0);
+  const ref=useRef(null);
+  const inView=useInView(ref,{once:true});
+  useEffect(()=>{
+    if(!inView)return;
+    const dur=1800,t0=performance.now();
+    const step=now=>{
+      const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3);
+      setV(Math.floor(e*target));
+      if(p<1)requestAnimationFrame(step);else setV(target);
+    };
+    requestAnimationFrame(step);
+  },[inView,target]);
+  return <span ref={ref}>{v}{suffix}</span>;
+}
+
+/* SECTION HEADER */
+const SH=({tag,title})=>(
+  <Reveal style={{marginBottom:52}}>
+    <div style={{fontSize:11,letterSpacing:".15em",textTransform:"uppercase",color:C.violet,marginBottom:12,fontFamily:"'Inter',sans-serif"}}>{tag}</div>
+    <h2 style={{fontSize:"clamp(30px,4vw,54px)",fontWeight:800,letterSpacing:"-.03em",color:"#fff",lineHeight:1.05,fontFamily:"'Inter',sans-serif"}} dangerouslySetInnerHTML={{__html:title}}/>
+  </Reveal>
+);
+
+/* NAV */
+function Nav({onS}) {
+  const [sc,setSc]=useState(false);
+  useEffect(()=>{const h=()=>setSc(window.scrollY>50);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h);},[]);
+  return (
+    <motion.nav initial={{y:-60,opacity:0}} animate={{y:0,opacity:1}} transition={{duration:.7,ease:[.16,1,.3,1]}}
+      style={{position:"fixed",top:0,left:0,right:0,zIndex:800,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 32px",
+        background:sc?"rgba(2,2,10,.88)":"transparent",borderBottom:sc?"1px solid rgba(255,255,255,.06)":"1px solid transparent",
+        backdropFilter:sc?"blur(24px)":"none",transition:"all .4s ease"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:28,height:28,borderRadius:8,background:"linear-gradient(135deg,#7c3aed,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#fff"}}>HT</div>
+        <span style={{fontWeight:700,fontSize:15,color:C.text,letterSpacing:"-.02em"}}>Hashaam Tanveer</span>
+      </div>
+      <div style={{display:"flex",gap:4}}>
+        {["About","Experience","Stack","Work","Contact"].map(l=>(
+          <motion.button key={l} onClick={()=>onS(l.toLowerCase())}
+            style={{background:"transparent",border:"none",cursor:"none",padding:"6px 14px",borderRadius:8,fontSize:13,color:C.muted}}
+            whileHover={{color:C.text,backgroundColor:"rgba(255,255,255,.05)"}}>
+            {l}
+          </motion.button>
+        ))}
+      </div>
+      <Btn onClick={()=>onS("contact")} style={{padding:"8px 20px",fontSize:13}}>Hire Me ↗</Btn>
+    </motion.nav>
+  );
+}
+
+/* HERO */
+const WORDS=["Systems","Pipelines","Frameworks","Workflows","Automation"];
+function Hero({onS}) {
+  const [wi,setWi]=useState(0);
+  useEffect(()=>{const t=setInterval(()=>setWi(p=>(p+1)%WORDS.length),2600);return()=>clearInterval(t);},[]);
+  return (
+    <section style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:"120px 24px 80px",position:"relative",zIndex:10}}>
+      <div style={{position:"absolute",inset:0,overflow:"hidden",pointerEvents:"none"}}>
+        {[0,1,2,3,4].map(i=><Star key={i} delay={i*2.5}/>)}
+      </div>
+
+      {/* Badge */}
+      <motion.div initial={{opacity:0,y:20,scale:.9}} animate={{opacity:1,y:0,scale:1}} transition={{duration:.6,ease:[.16,1,.3,1]}}
+        style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(139,92,246,.1)",border:"1px solid rgba(139,92,246,.25)",borderRadius:100,padding:"6px 18px",marginBottom:36,fontSize:12,letterSpacing:".06em",textTransform:"uppercase",color:"#a78bfa"}}>
+        <motion.div style={{width:6,height:6,borderRadius:"50%",background:C.emerald,boxShadow:`0 0 8px ${C.emerald}`}}
+          animate={{scale:[1,1.5,1],opacity:[1,.3,1]}} transition={{duration:2,repeat:Infinity}}/>
+        Available for Remote Roles · Islamabad PKT
+      </motion.div>
+
+      {/* Headline */}
+      <motion.h1 initial={{opacity:0,y:36}} animate={{opacity:1,y:0}} transition={{duration:.85,delay:.1,ease:[.16,1,.3,1]}}
+        style={{fontSize:"clamp(54px,9vw,118px)",fontWeight:900,lineHeight:.88,letterSpacing:"-.045em",marginBottom:30}}>
+        <span style={{display:"block",color:"#fff"}}>Marketing</span>
+        <span style={{display:"block",minHeight:"1.05em"}}>
+          <AnimatePresence mode="wait">
+            <motion.span key={wi} initial={{opacity:0,y:20,filter:"blur(8px)"}} animate={{opacity:1,y:0,filter:"blur(0px)"}} exit={{opacity:0,y:-20,filter:"blur(8px)"}} transition={{duration:.38}} style={{display:"inline-block"}}>
+              <GradText from={C.violet} to={C.cyan}>{WORDS[wi]}</GradText>
+            </motion.span>
+          </AnimatePresence>
+        </span>
+        <span style={{display:"block",color:"#fff"}}>Engineered.</span>
+      </motion.h1>
+
+      <motion.p initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.45,duration:.8}}
+        style={{fontSize:18,color:C.muted,maxWidth:520,lineHeight:1.75,marginBottom:44}}>
+        <span style={{color:C.text,fontWeight:600}}>Hashaam Tanveer</span> — 6+ years building the CRM systems, automation pipelines, and revenue infrastructure that high-growth teams scale on.
+      </motion.p>
+
+      <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:.55,duration:.7}}
+        style={{display:"flex",gap:14,flexWrap:"wrap",justifyContent:"center",marginBottom:88}}>
+        <Btn onClick={()=>onS("work")}>Explore Work →</Btn>
+        <Btn variant="ghost" onClick={()=>onS("contact")} style={{padding:"13px 30px",fontSize:14}}>Get in Touch</Btn>
+      </motion.div>
+
+      {/* Stats */}
+      <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{delay:.7,duration:.8}}
+        style={{display:"flex",gap:56,flexWrap:"wrap",justifyContent:"center"}}>
+        {[{v:6,s:"+",l:"Years Experience"},{v:25,s:"+",l:"Automations Built"},{v:40,s:"%",l:"Avg Work Removed"},{v:4,s:"",l:"Global Markets"}].map((s,i)=>(
+          <div key={i} style={{textAlign:"center"}}>
+            <div style={{fontSize:40,fontWeight:900,letterSpacing:"-.04em"}}><GradText from={C.violet} to={C.cyan}><Counter target={s.v} suffix={s.s}/></GradText></div>
+            <div style={{fontSize:11,letterSpacing:".08em",textTransform:"uppercase",color:C.muted,marginTop:6}}>{s.l}</div>
+          </div>
+        ))}
+      </motion.div>
+
+      <motion.div animate={{y:[0,10,0]}} transition={{duration:2.2,repeat:Infinity}}
+        style={{position:"absolute",bottom:32,left:"50%",transform:"translateX(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+        <div style={{width:1,height:44,background:"linear-gradient(to bottom,transparent,rgba(139,92,246,.7))"}}/>
+        <div style={{width:5,height:5,borderRadius:"50%",background:C.violet,boxShadow:`0 0 10px ${C.violet}`}}/>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ABOUT BENTO */
+function About() {
+  const stat=(v,l,g)=>(
+    <Card style={{padding:28,minHeight:130}} glow={g[0]}>
+      <div style={{fontSize:"clamp(32px,3.5vw,48px)",fontWeight:900,letterSpacing:"-.04em",marginBottom:8}}><GradText from={g[0]} to={g[1]}>{v}</GradText></div>
+      <div style={{fontSize:11,color:C.muted,letterSpacing:".08em",textTransform:"uppercase"}}>{l}</div>
+    </Card>
+  );
+  return (
+    <section style={{position:"relative",zIndex:10,maxWidth:1100,margin:"0 auto",padding:"0 24px 120px"}}>
+      <SH tag="// About" title={`I build the <span style='background:linear-gradient(135deg,${C.violet},${C.pink});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text'>machine</span> behind the machine.`}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+
+        <Reveal style={{gridColumn:"span 2"}} delay={0}>
+          <Card style={{padding:36,height:"100%"}} glow={C.violet}>
+            <p style={{fontSize:15,lineHeight:1.85,color:C.muted,marginBottom:28}}>
+              Most marketing orgs are held back by broken infrastructure. Leads evaporate. Data lives in silos. Reporting is a spreadsheet emailed on Fridays. <span style={{color:C.text,fontWeight:500}}>I dismantle all of that — and replace it with systems that compound.</span>
+            </p>
+            <p style={{fontSize:15,lineHeight:1.85,color:C.muted}}>
+              Over 6 years I've built CRM architectures, automated revenue workflows, and operational dashboards for companies across the US, UK, Australia, and Canada. <span style={{color:C.text,fontWeight:500}}>Full ownership. No handoffs. Systems that last.</span>
+            </p>
+          </Card>
+        </Reveal>
+
+        <Reveal delay={.08}>
+          <Card style={{padding:28,height:"100%"}} glow={C.cyan}>
+            <div style={{fontSize:11,letterSpacing:".15em",textTransform:"uppercase",color:C.cyan,marginBottom:20}}>// Status</div>
+            {[["Location","Islamabad, PKT",C.emerald],["Availability","Remote · Now",C.emerald],["Current Role","Head of Smart Systems",C.violet],["MBA","SZABIST · Marketing",C.cyan],["AI Diploma","NUST · 2023",C.amber]].map(([k,v,d],i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`}}>
+                <span style={{fontSize:11,color:C.muted}}>{k}</span>
+                <span style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.text,fontWeight:500}}>
+                  <div style={{width:5,height:5,borderRadius:"50%",background:d,boxShadow:`0 0 6px ${d}`}}/>
+                  {v}
+                </span>
+              </div>
+            ))}
+          </Card>
+        </Reveal>
+
+        <Reveal delay={.05}>{stat("6+","Years Active",[C.violet,C.pink])}</Reveal>
+        <Reveal delay={.1}>{stat("25+","Automations Built",[C.cyan,C.emerald])}</Reveal>
+        <Reveal delay={.15}>{stat("7+","Enterprise Brands",[C.amber,C.rose])}</Reveal>
+
+        <Reveal style={{gridColumn:"span 3"}} delay={.18}>
+          <Card style={{padding:28}} glow={C.amber}>
+            <div style={{fontSize:11,letterSpacing:".15em",textTransform:"uppercase",color:C.amber,marginBottom:16}}>// Certifications & Awards</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {["HubSpot Marketing Hub ✓","HubSpot Sales Hub ✓","Object Detection · NUST","Team Lead of Year 2023 🏆","Employee of Month · Jan 2023","MBA · SZABIST","AI Diploma · NUST"].map((c,i)=>(
+                <motion.span key={i} whileHover={{scale:1.05,background:"rgba(245,158,11,.15)"}}
+                  style={{fontSize:11,padding:"5px 14px",borderRadius:6,background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.2)",color:"#fbbf24",letterSpacing:".03em",cursor:"none"}}>
+                  {c}
+                </motion.span>
+              ))}
+            </div>
+          </Card>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* EXPERIENCE */
+const EXP=[
+  {co:"Magtyne",role:"Head of Smart Systems",period:"Jan 2026 — Present · USA Remote",col:C.violet,kpis:[["40%","Work Cut"],["n8n","Engine"],["∞","Clients"]],pts:["Built end-to-end n8n automation systems eliminating 40% of recurring manual work","Designed and launched client websites from wireframes through post-launch handoff","Built Notion operations dashboards + ClickUp project spaces for real-time visibility","Created custom CRM systems on Replit for clients where off-the-shelf tools failed"],tags:["n8n","Notion","ClickUp","Replit","Zapier"]},
+  {co:"Zones LLC",role:"Marketing Operations Specialist",period:"Jul 2024 — Jan 2026 · Islamabad",col:C.cyan,kpis:[["25+","Workflows"],["30%","Lead Work Cut"],["7+","Brands"]],pts:["HubSpot Super Admin: full CRM config, pipelines, lifecycle stages, user roles","Built 25+ automation workflows — lead routing, lifecycle, alerts, webinar ops","Designed Subscriber → MQL → SQL → Opportunity → Customer lifecycle framework","Delivered campaigns for Adobe, Microsoft, Apple, Cisco, Intel, HP, Lenovo"],tags:["HubSpot","Zapier","MS Dynamics 365","Wrike","Hootsuite"]},
+  {co:"Pixako (Lead)",role:"Operations Team Lead",period:"Aug 2022 — Jul 2024 · Islamabad",col:C.emerald,kpis:[["3","Ad Platforms"],["AU","Partner"],["↑","Throughput"]],pts:["Led operational improvements across a PR and digital marketing agency","Managed Zoho CRM for full lead-to-close pipeline management end-to-end","Coordinated campaigns with Australian partners at MediaNet across time zones","Managed Google Ads, Facebook, Instagram campaigns with full attribution"],tags:["Zoho CRM","Jira","Google Ads","Meta Ads","MediaNet"]},
+  {co:"Pixako (Assoc)",role:"Operations Associate",period:"Aug 2020 — Jul 2022 · Islamabad",col:C.amber,kpis:[["10+","Domains"],["B2B","Lead Gen"],["GA4","Tracking"]],pts:["Managed backend operations for 10+ WordPress domains","Ran email marketing campaigns tracked through Google Analytics","Generated qualified B2B leads through structured LinkedIn outreach"],tags:["WordPress","Google Analytics","Email Marketing","LinkedIn"]},
+  {co:"iCrowdNewswire",role:"Data Researcher",period:"May – Aug 2020 · Remote USA",col:C.rose,kpis:[["B2B","Prospecting"],["ZoomInfo","Data"],["↑","Response Rate"]],pts:["B2B prospecting via LinkedIn to qualify leads for account management teams","Used ZoomInfo, Hunter.io, LeadLeaper, Skrapp.io to verify prospect data","Developed outreach templates that improved team response rates"],tags:["ZoomInfo","Hunter.io","LinkedIn","B2B"]},
+];
+
+function Experience() {
+  const [active,setActive]=useState(0);
+  const e=EXP[active];
+  return (
+    <section style={{position:"relative",zIndex:10,maxWidth:1100,margin:"0 auto",padding:"0 24px 120px"}}>
+      <SH tag="// Experience" title={`Six years. <span style='background:linear-gradient(135deg,${C.cyan},${C.emerald});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text'>Four markets.</span>`}/>
+      <Reveal>
+        <div style={{display:"grid",gridTemplateColumns:"200px 1fr",border:"1px solid rgba(255,255,255,.07)",borderRadius:16,overflow:"hidden"}}>
+          <div style={{borderRight:"1px solid rgba(255,255,255,.07)",background:"rgba(255,255,255,.02)"}}>
+            {EXP.map((j,i)=>(
+              <motion.div key={i} onClick={()=>setActive(i)}
+                style={{padding:"17px 20px",borderBottom:"1px solid rgba(255,255,255,.05)",cursor:"none",position:"relative",overflow:"hidden"}}
+                animate={{backgroundColor:active===i?"rgba(139,92,246,.08)":"rgba(0,0,0,0)"}}>
+                {active===i&&<motion.div layoutId="bar" style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:`linear-gradient(to bottom,${j.col},transparent)`}}/>}
+                <div style={{fontSize:13,fontWeight:600,color:active===i?"#fff":C.muted,transition:"color .2s"}}>{j.co}</div>
+                <div style={{fontSize:9,color:C.dim,marginTop:3,letterSpacing:".04em"}}>{j.period.split("·")[0].trim()}</div>
+              </motion.div>
+            ))}
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.div key={active} initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}}
+              transition={{duration:.32,ease:[.16,1,.3,1]}}
+              style={{padding:40,background:"rgba(255,255,255,.01)"}}>
+              <div style={{fontSize:"clamp(26px,3.5vw,46px)",fontWeight:800,letterSpacing:"-.03em",color:"#fff",marginBottom:4}}>{e.co}</div>
+              <div style={{fontSize:14,fontWeight:500,marginBottom:4}}><GradText from={e.col} to={C.cyan}>{e.role}</GradText></div>
+              <div style={{fontSize:11,color:C.dim,letterSpacing:".08em",textTransform:"uppercase",marginBottom:26}}>{e.period}</div>
+              <div style={{display:"flex",gap:16,marginBottom:26,flexWrap:"wrap"}}>
+                {e.kpis.map(([v,l],i)=>(
+                  <div key={i} style={{padding:"13px 18px",background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.07)",borderRadius:10,textAlign:"center",minWidth:70}}>
+                    <div style={{fontSize:22,fontWeight:800,letterSpacing:"-.03em"}}><GradText from={e.col} to={C.cyan}>{v}</GradText></div>
+                    <div style={{fontSize:9,color:C.dim,textTransform:"uppercase",letterSpacing:".08em",marginTop:3}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <ul style={{listStyle:"none",display:"flex",flexDirection:"column",gap:10,marginBottom:22}}>
+                {e.pts.map((p,i)=>(
+                  <li key={i} style={{display:"flex",gap:12,fontSize:13,color:C.muted,lineHeight:1.7}}>
+                    <span style={{color:e.col,flexShrink:0,marginTop:2}}>→</span><span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {e.tags.map((t,i)=>(
+                  <span key={i} style={{fontSize:10,padding:"4px 10px",borderRadius:5,background:`${e.col}15`,border:`1px solid ${e.col}30`,color:e.col,letterSpacing:".04em"}}>{t}</span>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* SKILLS */
+const SGROUPS=[
+  {g:"CRM & Automation",col:C.violet,items:[{n:"HubSpot (Super Admin)",p:97},{n:"n8n",p:91},{n:"Zapier",p:88},{n:"Zoho CRM",p:82},{n:"GoHighLevel",p:70}]},
+  {g:"Analytics & Advertising",col:C.cyan,items:[{n:"Google Analytics 4",p:89},{n:"Google Ads",p:82},{n:"Meta Ads",p:80},{n:"LinkedIn Ads",p:74},{n:"GTM",p:75}]},
+  {g:"Project Management",col:C.emerald,items:[{n:"ClickUp / Wrike",p:90},{n:"Notion / Airtable",p:88},{n:"Jira",p:80},{n:"Asana",p:76}]},
+  {g:"Build & Deploy",col:C.amber,items:[{n:"WordPress",p:86},{n:"Supabase / Replit",p:74},{n:"Bubble / Glide",p:71},{n:"Cursor / Lovable",p:77}]},
+];
+
+function SBar({n,p,col,i}) {
+  const ref=useRef(null);
+  const inView=useInView(ref,{once:true});
+  return (
+    <div ref={ref} style={{marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
+        <span style={{fontSize:13,color:C.text}}>{n}</span>
+        <span style={{fontSize:11,color:C.muted}}>{p}</span>
+      </div>
+      <div style={{height:3,borderRadius:2,background:"rgba(255,255,255,.05)",overflow:"visible",position:"relative"}}>
+        <motion.div initial={{width:0}} animate={{width:inView?`${p}%`:0}} transition={{duration:1.5,delay:i*.09,ease:[.16,1,.3,1]}}
+          style={{height:"100%",borderRadius:2,background:`linear-gradient(90deg,${col},${col}99)`,position:"relative"}}>
+          <div style={{position:"absolute",right:-4,top:-4,width:9,height:9,borderRadius:"50%",background:col,boxShadow:`0 0 10px ${col}`}}/>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function Stack() {
+  const tools="HubSpot · n8n · Zapier · Zoho CRM · MS Dynamics 365 · GoHighLevel · Salesforce · Marketo · GA4 · GTM · Google Ads · Meta Ads · LinkedIn Ads · TikTok Ads · Amazon Ads · YouTube Ads · Hootsuite · ClickUp · Wrike · Jira · Asana · Notion · Airtable · WordPress · Bubble · Shopify · Webflow · Lovable · Bolt · Glide · Supabase · Replit · Vercel · Netlify · Cursor · Canva · Bynder · Power Automate · SEO · ABM · Lead Scoring · SLA Design".split(" · ");
+  return (
+    <section style={{position:"relative",zIndex:10,maxWidth:1100,margin:"0 auto",padding:"0 24px 120px"}}>
+      <SH tag="// Technical Stack" title={`What's running <span style='background:linear-gradient(135deg,${C.amber},${C.rose});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text'>under the hood.</span>`}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:12}}>
+        {SGROUPS.map((g,gi)=>(
+          <Reveal key={gi} delay={gi*.08}>
+            <Card style={{padding:28,height:"100%"}} glow={g.col}>
+              <div style={{fontSize:11,letterSpacing:".15em",textTransform:"uppercase",color:g.col,marginBottom:20}}>{g.g}</div>
+              {g.items.map((s,i)=><SBar key={i} n={s.n} p={s.p} col={g.col} i={i}/>)}
+            </Card>
+          </Reveal>
+        ))}
+      </div>
+      <Reveal delay={.25}>
+        <Card style={{padding:28}} glow={C.muted}>
+          <div style={{fontSize:11,letterSpacing:".12em",textTransform:"uppercase",color:C.dim,marginBottom:16}}>// Full Tool Inventory</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {tools.map((t,i)=>(
+              <motion.span key={i} whileHover={{scale:1.08,background:"rgba(139,92,246,.15)",color:"#a78bfa",borderColor:"rgba(139,92,246,.3)"}}
+                style={{fontSize:11,padding:"4px 12px",borderRadius:6,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.08)",color:C.muted,cursor:"none",transition:"all .2s"}}>
+                {t}
+              </motion.span>
+            ))}
+          </div>
+        </Card>
+      </Reveal>
+    </section>
+  );
+}
+
+/* WORK */
+const WORK=[
+  {n:"01",tags:["HubSpot","RevOps","CRM"],title:"Full Lifecycle CRM Architecture",co:"Zones LLC",desc:"Rebuilt HubSpot end-to-end. 25+ workflows, Subscriber→Customer lifecycle, HubSpot × Dynamics 365 sync, 7 Fortune 500 partner programs.",m:"30%",ml:"Manual work cut",col:C.violet},
+  {n:"02",tags:["n8n","Automation"],title:"n8n Automation Infrastructure",co:"Magtyne",desc:"End-to-end automation systems replacing human repetition. Multi-client deployment, zero-drift pipelines that run without babysitting.",m:"40%",ml:"Time saved",col:C.cyan},
+  {n:"03",tags:["Campaigns","Attribution"],title:"Enterprise Partner Campaign Engine",co:"Zones LLC",desc:"Landing pages, nurture sequences, and attribution dashboards for Adobe, Microsoft, Apple, Cisco, Intel, HP, and Lenovo.",m:"7+",ml:"Enterprise brands",col:C.emerald},
+  {n:"04",tags:["Ops","Notion","ClickUp"],title:"Client Ops Dashboard System",co:"Magtyne",desc:"Notion dashboards and ClickUp project spaces with real-time workload and milestone visibility across all concurrent engagements.",m:"10+",ml:"Clients managed",col:C.amber},
+  {n:"05",tags:["WordPress","Ads","GA4"],title:"Multi-Domain Digital Infrastructure",co:"Pixako",desc:"Backend ops for 10+ WordPress domains. Google Ads, Meta, Instagram campaigns with full GA4 conversion tracking.",m:"10+",ml:"Domains run",col:C.rose},
+];
+
+function Work() {
+  const [hov,setHov]=useState(null);
+  return (
+    <section style={{position:"relative",zIndex:10,maxWidth:1100,margin:"0 auto",padding:"0 24px 120px"}}>
+      <SH tag="// Selected Work" title={`Five dispatches <span style='background:linear-gradient(135deg,${C.rose},${C.amber});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text'>from the field.</span>`}/>
+      <Reveal>
+        <div style={{border:"1px solid rgba(255,255,255,.07)",borderRadius:16,overflow:"hidden"}}>
+          {WORK.map((w,i)=>(
+            <motion.div key={i} onHoverStart={()=>setHov(i)} onHoverEnd={()=>setHov(null)}
+              style={{display:"grid",gridTemplateColumns:"52px 1fr auto",alignItems:"center",gap:24,padding:"24px 28px",borderBottom:i<WORK.length-1?"1px solid rgba(255,255,255,.05)":"none",cursor:"none",position:"relative",overflow:"hidden"}}
+              animate={{backgroundColor:hov===i?"rgba(255,255,255,.03)":"transparent"}}>
+              <motion.div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:`linear-gradient(to bottom,${w.col},transparent)`,transformOrigin:"top"}}
+                initial={{scaleY:0}} animate={{scaleY:hov===i?1:0}} transition={{duration:.3}}/>
+              <span style={{fontSize:11,color:C.dim,letterSpacing:".08em"}}>{w.n}</span>
+              <div>
+                <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+                  {w.tags.map((t,j)=><span key={j} style={{fontSize:9,letterSpacing:".1em",textTransform:"uppercase",padding:"2px 8px",borderRadius:4,border:"1px solid rgba(255,255,255,.08)",color:C.dim}}>{t}</span>)}
+                  <span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:`${w.col}18`,border:`1px solid ${w.col}28`,color:w.col,letterSpacing:".06em"}}>{w.co}</span>
+                </div>
+                <div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:5,letterSpacing:"-.01em"}}>{w.title}</div>
+                <div style={{fontSize:13,color:C.muted,lineHeight:1.65,maxWidth:520}}>{w.desc}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:38,fontWeight:900,letterSpacing:"-.04em"}}><GradText from={w.col} to={C.cyan}>{w.m}</GradText></div>
+                <div style={{fontSize:10,color:C.dim,letterSpacing:".08em",textTransform:"uppercase"}}>{w.ml}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* CONTACT */
+function Contact() {
+  const [sent,setSent]=useState(false);
+  return (
+    <section style={{position:"relative",zIndex:10,maxWidth:1100,margin:"0 auto",padding:"0 24px 160px"}}>
+      <SH tag="// Contact" title={`Ready to ship <span style='background:linear-gradient(135deg,${C.violet},${C.cyan});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text'>something great?</span>`}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <Reveal>
+          <Card style={{padding:48,height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between"}} glow={C.violet}>
+            <div>
+              <p style={{fontSize:15,color:C.muted,lineHeight:1.85,marginBottom:40}}>Whether you need a HubSpot rebuild from scratch, an n8n pipeline that holds up, or a RevOps partner who owns the outcome from day one — this is where it starts.</p>
+              {[["Email","hashaamtanveerk@gmail.com","mailto:hashaamtanveerk@gmail.com"],["WhatsApp","+92-336-5717-466","tel:+923365717466"],["LinkedIn","Connect Here","#"],["Portfolio","View All Work","#"]].map(([l,v,h],i)=>(
+                <motion.a key={i} href={h} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"15px 0",borderBottom:"1px solid rgba(255,255,255,.06)",textDecoration:"none",cursor:"none"}}
+                  whileHover={{paddingLeft:10}} transition={{duration:.2}}>
+                  <span style={{fontSize:10,letterSpacing:".12em",textTransform:"uppercase",color:C.dim}}>{l}</span>
+                  <motion.span style={{fontSize:13,fontWeight:500,color:C.text}} whileHover={{color:C.violet}}>{v} →</motion.span>
+                </motion.a>
+              ))}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:32,fontSize:11,color:C.dim}}>
+              <motion.div style={{width:6,height:6,borderRadius:"50%",background:C.emerald,boxShadow:`0 0 8px ${C.emerald}`}}
+                animate={{scale:[1,1.5,1],opacity:[1,.3,1]}} transition={{duration:2,repeat:Infinity}}/>
+              Available for remote work · Islamabad, PKT +5:00
+            </div>
+          </Card>
+        </Reveal>
+        <Reveal delay={.1}>
+          <Card style={{padding:40}} glow={C.cyan}>
+            {!sent?(
+              <div style={{display:"flex",flexDirection:"column"}}>
+                {[["Your Name","Full name","text"],["Email","you@company.com","email"],["Organization","Company or context","text"]].map(([l,p,t],i)=>(
+                  <div key={i} style={{borderBottom:"1px solid rgba(255,255,255,.07)"}}>
+                    <label style={{fontSize:9,letterSpacing:".18em",textTransform:"uppercase",color:C.dim,padding:"14px 0 2px",display:"block"}}>{l}</label>
+                    <input type={t} placeholder={p} style={{background:"transparent",border:"none",outline:"none",fontSize:14,color:C.text,width:"100%",padding:"4px 0 14px",caretColor:C.violet}}/>
+                  </div>
+                ))}
+                <div style={{borderBottom:"1px solid rgba(255,255,255,.07)"}}>
+                  <label style={{fontSize:9,letterSpacing:".18em",textTransform:"uppercase",color:C.dim,padding:"14px 0 2px",display:"block"}}>What needs to be built?</label>
+                  <textarea placeholder="Describe the project, role, or challenge…" style={{background:"transparent",border:"none",outline:"none",fontSize:14,color:C.text,width:"100%",padding:"4px 0 14px",minHeight:90,resize:"none",caretColor:C.violet}}/>
+                </div>
+                <motion.button onClick={()=>{setSent(true);setTimeout(()=>setSent(false),4000);}}
+                  style={{marginTop:24,background:"linear-gradient(135deg,#7c3aed,#0891b2)",color:"#fff",border:"none",padding:"15px 28px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"none",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 4px 24px rgba(124,58,237,.3)"}}
+                  whileHover={{opacity:.9,y:-1}} whileTap={{scale:.97}}>
+                  <span>Send Message</span><span>→</span>
+                </motion.button>
+              </div>
+            ):(
+              <motion.div initial={{opacity:0,scale:.9}} animate={{opacity:1,scale:1}}
+                style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",textAlign:"center",padding:40}}>
+                <motion.div animate={{scale:[0,1.2,1]}} transition={{duration:.5}} style={{fontSize:56,marginBottom:16}}>✓</motion.div>
+                <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:8}}>Message Sent</div>
+                <div style={{fontSize:13,color:C.muted}}>Hashaam will respond shortly.</div>
+              </motion.div>
+            )}
+          </Card>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* INTRO */
+function Intro({onDone}) {
+  const [p,setP]=useState(0);
+  useEffect(()=>{
+    let v=0;
+    const id=setInterval(()=>{
+      v+=Math.random()*16+5;
+      if(v>=100){v=100;clearInterval(id);setTimeout(onDone,500);}
+      setP(Math.floor(v));
+    },55);
+    return()=>clearInterval(id);
+  },[]);
+  return (
+    <motion.div exit={{opacity:0,scale:.98}} transition={{duration:.65,ease:[.16,1,.3,1]}}
+      style={{position:"fixed",inset:0,background:C.bg,zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      {/* Logo anim */}
+      <motion.div animate={{scale:[.9,1.05,.98,1],opacity:[0,1]}} transition={{duration:.8}} style={{marginBottom:48}}>
+        <div style={{width:64,height:64,borderRadius:18,background:"linear-gradient(135deg,#7c3aed,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:800,color:"#fff",boxShadow:"0 0 60px rgba(124,58,237,.5)"}}>HT</div>
+      </motion.div>
+      <motion.div animate={{opacity:[.4,1,.4]}} transition={{duration:2,repeat:Infinity}} style={{fontSize:13,letterSpacing:".3em",textTransform:"uppercase",color:C.muted,marginBottom:36}}>Hashaam Tanveer</motion.div>
+      <div style={{width:200,height:2,background:"rgba(255,255,255,.06)",borderRadius:1,overflow:"hidden",marginBottom:14}}>
+        <div style={{height:"100%",background:"linear-gradient(90deg,#7c3aed,#06b6d4)",width:`${p}%`,transition:"width .06s linear"}}/>
+      </div>
+      <div style={{fontSize:11,color:C.dim,letterSpacing:".06em"}}>{p}%</div>
+    </motion.div>
+  );
+}
+
+/* APP */
+function App() {
+  const [ready,setReady]=useState(false);
+  const refs={about:useRef(),experience:useRef(),stack:useRef(),work:useRef(),contact:useRef()};
+  const scrollTo=k=>refs[k]?.current?.scrollIntoView({behavior:"smooth"});
+  return (
+    <div style={{background:C.bg,minHeight:"100vh",overflowX:"hidden"}}>
+      <AnimatePresence>{!ready&&<Intro onDone={()=>setReady(true)}/>}</AnimatePresence>
+      {ready&&<>
+        <CursorGlow/>
+        <Aurora/>
+        <Nav onS={scrollTo}/>
+        <Hero onS={scrollTo}/>
+        <div ref={refs.about}><About/></div>
+        <div ref={refs.experience}><Experience/></div>
+        <div ref={refs.stack}><Stack/></div>
+        <div ref={refs.work}><Work/></div>
+        <div ref={refs.contact}><Contact/></div>
+        <footer style={{position:"relative",zIndex:10,borderTop:"1px solid rgba(255,255,255,.06)",padding:"24px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(2,2,10,.8)",backdropFilter:"blur(20px)"}}>
+          <span style={{fontSize:12,color:C.dim}}>© 2026 Hashaam Tanveer · Marketing Infrastructure</span>
+          <div style={{display:"flex",gap:24}}>
+            {["Email","LinkedIn","Resume"].map(l=><motion.a key={l} href="#" style={{fontSize:12,color:C.dim,textDecoration:"none",cursor:"none"}} whileHover={{color:C.text}}>{l}</motion.a>)}
+          </div>
+        </footer>
+      </>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
